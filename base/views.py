@@ -1,22 +1,11 @@
 from django.http import HttpResponse
-from .serializer import MeetingsSerializer, ParentsSerializerForBabysitter, RegistrationSerializer, RequestsSerializer, AvailableTimeSerializer, BabysitterSerializerForParents,RequestsStatusSerializer
-from .models import Babysitter, Meetings, Requests
-from .serializer import BabysitterSerializer
-from .models import Parents
-from .serializer import ParentsSerializer
-from .models import Kids
-from .serializer import KidsSerializer
-from .models import Reviews
-from .serializer import ReviewsSerializer
-from .models import AvailableTime 
+from .serializer import *
+from .models import Babysitter, Meetings, Requests, Parents, Kids, Reviews, AvailableTime
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
-from rest_framework.decorators import api_view
-from rest_framework import status
-from rest_framework import permissions , viewsets , generics, exceptions
+from rest_framework import permissions , viewsets , generics, exceptions, status
 from django.contrib.auth.models import User
 from .permissions import IsParent , IsBabysitter
 
@@ -31,7 +20,7 @@ class MyTokenObtainPairView(TokenObtainPairView):
 
 #i’m protected
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([permissions.IsAuthenticated])
 def about(req): 
  return HttpResponse("about")
 
@@ -361,7 +350,7 @@ class ReviewsViewSet(viewsets.ModelViewSet):
 class show_reviews(generics.ListAPIView):
     queryset = Reviews.objects.all()
     serializer_class = ReviewsSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated]
 
 
     def get_queryset(self):

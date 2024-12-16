@@ -1,13 +1,8 @@
 from django.db import models
-from django.contrib.contenttypes.models import ContentType
-from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.auth.models import User
-
-
 
 # The Babysitter model
 class Babysitter(models.Model):
-
     id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=255)
     age = models.IntegerField()
@@ -20,8 +15,7 @@ class Babysitter(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, null=True, blank=True, unique=True , related_name="Babysitter")
     
     def __str__(self):
-            return self.name
-
+        return self.name
 
 # The Parents model
 class Parents(models.Model):
@@ -38,7 +32,6 @@ class Parents(models.Model):
     def __str__(self):
         return self.last_name
 
-
 # The Kids model
 class Kids(models.Model):
     id = models.AutoField(primary_key=True)
@@ -46,13 +39,9 @@ class Kids(models.Model):
     name = models.CharField(max_length=255, )
     age = models.IntegerField(default=0)
     created_time = models.DateTimeField(auto_now_add=True)
-    fields = ['name', 'age']
 
     def __str__(self):
         return self.name
-
-
-
 
 class AvailableTime(models.Model):
     id = models.AutoField(primary_key=True)
@@ -60,28 +49,21 @@ class AvailableTime(models.Model):
     date = models.DateField(null=True)
     start_time = models.TimeField(null=True)
     end_time = models.TimeField(null=True)
-    fields = ['date', 'start_time' , 'end_time']
-
 
     def __str__(self):
         return f"from {self.start_time} to {self.end_time} on {self.date}"
 
-
-
-
-# The Info model
+# The Meetings model
 class Meetings(models.Model):
     id = models.AutoField(primary_key=True)
     meeting_time = models.DateTimeField()
     family = models.ForeignKey(Parents, related_name='meetings', on_delete=models.CASCADE)
     babysitter = models.ForeignKey(Babysitter, related_name='meetings', on_delete=models.CASCADE)
     created_time = models.DateTimeField(auto_now_add=True)
-    fields = ['meeting_time', 'family', 'babysitter']
 
     def __str__(self):
         return f"Meeting on {self.meeting_time} between {self.family} and {self.babysitter}"
     
-
 # The Reviews model
 class Reviews(models.Model):
     id = models.AutoField(primary_key=True)
@@ -94,9 +76,7 @@ class Reviews(models.Model):
     def __str__(self):
         return f"Review for {self.babysitter} by {self.family}"
 
-
-
-
+# The Requests model
 class Requests(models.Model):
     STATUS_CHOICES = [
         ('pending', 'Pending'),
@@ -113,4 +93,3 @@ class Requests(models.Model):
 
     def __str__(self):
         return f"Request from {self.family} to {self.babysitter} - {self.status}"
-

@@ -1,0 +1,7 @@
+# Ignore virtual environment directory
+myenv/
+
+# Ignore Python cache files
+base/__pycache__/
+base/migrations/__pycache__/
+myproj/__pycache__/

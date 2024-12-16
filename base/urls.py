@@ -12,7 +12,6 @@ router.register(r'availability', views.AvailableTimeActions, basename='availabil
 # router.register(r'babysitters-admin', views.AdminForBabysitter, basename='babysitter-admin')
 router.register(r'reviews', views.ReviewsViewSet, basename='reviews')
 
-
 urlpatterns = [
     path('', views.index),
     # path('availability/', views.TheAvailability),
@@ -31,11 +30,7 @@ urlpatterns = [
     path('show-request/', views.ShowRequestForParents.as_view()), # will be used to create request
     path('update-request/<int:pk>/', views.RequestActions.as_view()), # will be used for approve/decline
     path('show-reviews/', views.show_reviews.as_view()), # will be used to show reviews on certain babysitter 
-
 ]
-    
-
-    
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
