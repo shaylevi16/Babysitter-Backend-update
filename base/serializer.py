@@ -5,8 +5,8 @@ from .models import Babysitter, Meetings, Requests, Parents, Kids, Reviews, Avai
 from django.contrib.auth.models import User
 
 __all__ = ["RegistrationSerializer", "BabysitterSerializer", "BabysitterSerializerForParents", "KidsSerializer",
-           "ParentsSerializer", "ParentsSerializerForBabysitter", "MeetingsSerializer", "ReviewsSerializer",
-           "AvailableTimeSerializer", "RequestsSerializer", "RequestsStatusSerializer"]
+           "ParentsSerializer", "ParentsSerializerForBabysitter", "MeetingsSerializer", "MeetingsSerializerForCreating",
+            "ReviewsSerializer", "AvailableTimeSerializer", "RequestsSerializer", "RequestsStatusSerializer"]
 
 class RegistrationSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
@@ -62,10 +62,26 @@ class ParentsSerializerForBabysitter(serializers.ModelSerializer):
         model = Parents
         fields = ['dad_name' , 'mom_name' , 'address' , 'last_name' , 'profile_picture' , 'kids']    
 
-class MeetingsSerializer(serializers.ModelSerializer):
+class MeetingsSerializerForCreating(serializers.ModelSerializer):
     class Meta:
         model = Meetings
-        fields = '__all__'
+        fields = ['start_time', 'end_time']
+
+    def validate(self, data):
+        if data['start_time'] >= data['end_time']:
+            raise serializers.ValidationError("start_time must be before end_time.")
+        return data
+
+class MeetingsSerializer(serializers.ModelSerializer):
+    babysitter_id = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Meetings
+        fields = ['start_time', 'end_time', 'babysitter_id']
+
+    def get_babysitter_id(self, obj):
+        # This assumes `babysitter` is a related field to the `Babysitter` model
+        return obj.babysitter.id if obj.babysitter else None
 
 class ReviewsSerializer(serializers.ModelSerializer):
     class Meta:

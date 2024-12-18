@@ -8,8 +8,8 @@ from rest_framework.routers import DefaultRouter
 
 router = DefaultRouter()
 router.register(r'availability', views.AvailableTimeActions, basename='availability')
-# router.register(r'babysitters-admin', views.AdminForBabysitter, basename='babysitter-admin')
 router.register(r'reviews', views.ReviewsViewSet, basename='reviews')
+router.register(r'babysitters-admin', views.AdminForBabysitter, basename='babysitter-admin')
 
 urlpatterns = [
     # General
@@ -30,16 +30,20 @@ urlpatterns = [
     path('kids-update/<int:pk>/', views.KidsActions.as_view()),
     # Available Time
     path('availability-list/', views.AvailableTimeListView.as_view()),
-    # + availability CRUD (in the router)
+    # + availability/* CRUD (in the router)
     # Requests
     path('request-add/', views.RequestsViewSet.as_view()),
-    path('requests-list/', views.ShowRequestForParents.as_view()),
+    path('requests-list/', views.ShowRequests.as_view()),
     path('request-update/<int:pk>/', views.RequestActionsForBabysitter.as_view()),
-
+    # Reviews
+    path('reviews-list/', views.ShowReviews.as_view()),
+    # + reviews/* CRUD (in the router)
+    # Meetings
+    path('meetings-add/', views.CreateMeetingView.as_view()),
+    path('meetings-list/', views.ShowMeetingsPerBabysitter.as_view()),
+    path('meetings-list-parents/', views.ShowMeetingsForParent.as_view()),
     # Router
     path('', include(router.urls)),
-
-    path('show-reviews/', views.show_reviews.as_view()), # will be used to show reviews on certain babysitter
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

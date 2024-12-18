@@ -52,9 +52,10 @@ class AvailableTime(models.Model):
 
 class Meetings(models.Model):
     id = models.AutoField(primary_key=True)
-    meeting_time = models.DateTimeField()
-    family = models.ForeignKey(Parents, related_name='meetings', on_delete=models.CASCADE)
-    babysitter = models.ForeignKey(Babysitter, related_name='meetings', on_delete=models.CASCADE)
+    start_time = models.DateTimeField(null=False)  # Start time of the meeting
+    end_time = models.DateTimeField(null=False)  # End time of the meeting
+    family = models.ForeignKey(Parents, null=False, related_name='meetings', on_delete=models.CASCADE)
+    babysitter = models.ForeignKey(Babysitter, null=False, related_name='meetings', on_delete=models.CASCADE)
     created_time = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
