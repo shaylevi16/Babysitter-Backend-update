@@ -1,7 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
 
-# The Babysitter model
 class Babysitter(models.Model):
     id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=255)
@@ -17,7 +16,6 @@ class Babysitter(models.Model):
     def __str__(self):
         return self.name
 
-# The Parents model
 class Parents(models.Model):
     family_id = models.AutoField(primary_key=True)
     dad_name = models.CharField(max_length=255)
@@ -32,7 +30,6 @@ class Parents(models.Model):
     def __str__(self):
         return self.last_name
 
-# The Kids model
 class Kids(models.Model):
     id = models.AutoField(primary_key=True)
     family = models.ForeignKey(Parents, related_name='kids', on_delete=models.CASCADE)
@@ -53,7 +50,6 @@ class AvailableTime(models.Model):
     def __str__(self):
         return f"from {self.start_time} to {self.end_time} on {self.date}"
 
-# The Meetings model
 class Meetings(models.Model):
     id = models.AutoField(primary_key=True)
     meeting_time = models.DateTimeField()
@@ -64,7 +60,6 @@ class Meetings(models.Model):
     def __str__(self):
         return f"Meeting on {self.meeting_time} between {self.family} and {self.babysitter}"
     
-# The Reviews model
 class Reviews(models.Model):
     id = models.AutoField(primary_key=True)
     family = models.ForeignKey(Parents, related_name='reviews', on_delete=models.CASCADE)
@@ -76,7 +71,6 @@ class Reviews(models.Model):
     def __str__(self):
         return f"Review for {self.babysitter} by {self.family}"
 
-# The Requests model
 class Requests(models.Model):
     STATUS_CHOICES = [
         ('pending', 'Pending'),

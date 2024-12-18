@@ -7,29 +7,39 @@ from base import views
 from rest_framework.routers import DefaultRouter
 
 router = DefaultRouter()
-# add the full crud's paths
 router.register(r'availability', views.AvailableTimeActions, basename='availability')
 # router.register(r'babysitters-admin', views.AdminForBabysitter, basename='babysitter-admin')
 router.register(r'reviews', views.ReviewsViewSet, basename='reviews')
 
 urlpatterns = [
+    # General
     path('', views.index),
-    # path('availability/', views.TheAvailability),
+    # User
     path('login/',TokenObtainPairView.as_view()),
     path('register/', views.register),
-    path('', include(router.urls)),  
-    path('babysitters-list/', views.BabysitterListView.as_view()), # parents view the babysitter list
-    path('babysitter-profile/<int:pk>/', views.BabysitterActions.as_view()), # see the babysitter info and update the info
-    path('delete-user/', views.deactivate_my_user) , # is active=false on user
-    path('parents-list/' , views.ParentsListView.as_view()) , # babysitters view the parents list
-    path('parents-profile/<int:pk>/' , views.ParentsActions.as_view()) , # see the parents info and update the info
-    path('kids/', views.KidsViewSet.as_view()), # kids view 
-    path('Edit-kids/<int:pk>/', views.KidsActions.as_view()), # edit kids 
-    path('babysitter-availability/', views.AvailableTimeListView.as_view()), # will be used for parents to see the babysitters availability
-    path('create-request/', views.RequestsViewSet.as_view()), # will be used to create request
-    path('show-request/', views.ShowRequestForParents.as_view()), # will be used to create request
-    path('update-request/<int:pk>/', views.RequestActions.as_view()), # will be used for approve/decline
-    path('show-reviews/', views.show_reviews.as_view()), # will be used to show reviews on certain babysitter 
+    path('user-delete/', views.deactivate_my_user),
+    # Babysitter 
+    path('babysitters-list/', views.BabysitterListView.as_view()),
+    path('babysitter-profile/<int:pk>/', views.BabysitterActions.as_view()),
+    # Parents
+    path('parents-list/' , views.ParentsListView.as_view()),
+    path('parents-profile/<int:pk>/' , views.ParentsActions.as_view()),
+    # Kids
+    path('kids-list/', views.KidsListView.as_view()),
+    path('kids-add/', views.KidsCreate.as_view()),
+    path('kids-update/<int:pk>/', views.KidsActions.as_view()),
+    # Available Time
+    path('availability-list/', views.AvailableTimeListView.as_view()),
+    # + availability CRUD (in the router)
+    # Requests
+    path('request-add/', views.RequestsViewSet.as_view()),
+    path('requests-list/', views.ShowRequestForParents.as_view()),
+    path('request-update/<int:pk>/', views.RequestActionsForBabysitter.as_view()),
+
+    # Router
+    path('', include(router.urls)),
+
+    path('show-reviews/', views.show_reviews.as_view()), # will be used to show reviews on certain babysitter
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
