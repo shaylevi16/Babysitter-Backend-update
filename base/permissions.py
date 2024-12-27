@@ -20,7 +20,7 @@ def check_parent_approved_by_babysitter(babysitter, parent):
     Check if there is an approved request between the parent and babysitter.
     """
     try:
-        _ = Requests.objects.get(babysitter=babysitter, family=parent, status='approved')
+        Requests.objects.get(babysitter=babysitter, family=parent, status='approved', is_active=True)
         return True
     except Requests.DoesNotExist:
         return False

@@ -248,7 +248,6 @@ class AvailableTimeActions(viewsets.ModelViewSet):
         # Create the availability time
         available_time = AvailableTime.objects.create( 
             babysitter = babysitter, 
-            date = serializer.validated_data.get('date') , 
             start_time = serializer.validated_data.get('start_time'), 
             end_time = serializer.validated_data.get('end_time')
         )
@@ -330,6 +329,21 @@ class ShowRequests(generics.ListAPIView):
             return Requests.objects.filter(family=Parents.objects.get(user=self.request.user))
         else:
             return Requests.objects.filter(babysitter=Babysitter.objects.get(user=self.request.user))
+
+class RequestDeactivate(generics.RetrieveUpdateAPIView):
+    """
+    Allows authenticated babysitters and parents to delete the requests sent to/by them (by setting is_active to False).
+    """
+    queryset = Requests.objects.all()
+    serializer_class = RequestsIsActiveSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_object(self):
+        obj = super().get_object()
+        # Ensure the logged-in babysitter/parent is the same as the babysitter/parent in the request
+        if obj.babysitter.user != self.request.user and obj.family.user != self.request.user:
+            raise exceptions.PermissionDenied("You are not authorized to update this request.")
+        return obj
 
 class RequestActionsForBabysitter(generics.RetrieveUpdateAPIView):
     """
@@ -432,7 +446,7 @@ class CreateMeetingView(generics.CreateAPIView):
         parents = Parents.objects.get(user=request.user)
 
         # Check babysitter validity
-        try:        
+        try:
             babysitter_id = self.request.data.get('babysitter_id', None)
             if babysitter_id is None:
                 return Response({"detail": "babysitter_id is required."}, status=status.HTTP_404_NOT_FOUND)
@@ -449,9 +463,8 @@ class CreateMeetingView(generics.CreateAPIView):
         # Check if babysitter is available at the given meeting time
         available_time = AvailableTime.objects.filter(
             babysitter=babysitter,
-            date=start_time.date(),
-            start_time__lte=start_time.time(),
-            end_time__gte=end_time.time()
+            start_time__lte=start_time,
+            end_time__gte=end_time
         ).exists()
         if not available_time:
             return Response({"message": "Babysitter is not available at the requested time."},
@@ -460,8 +473,9 @@ class CreateMeetingView(generics.CreateAPIView):
         # Check for existing meeting during the requested time period
         conflicting_meeting = Meetings.objects.filter(
             babysitter=babysitter,
-            start_time__lt=end_time,
-            end_time__gt=start_time
+            start_time__lte=end_time,
+            end_time__gte=start_time,
+            status='approved'
         ).exists()
         if conflicting_meeting:
             return Response({"message": "Babysitter is busy during the requested time."},
@@ -478,35 +492,92 @@ class CreateMeetingView(generics.CreateAPIView):
 
         return Response({"message": "Meeting created successfully"}, status=status.HTTP_201_CREATED)
 
-class ShowMeetingsPerBabysitter(generics.ListAPIView):
-    """
-    Retrieve a list of all meetings for a given babysitter id.
-    - **babysitter_id** (int): The id of the babysitter.
-
-    This view is used by both parents and babysitters. 
-    """
-    queryset = Reviews.objects.all()
-    serializer_class = MeetingsSerializer
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get_queryset(self):
-        id = self.request.data.get('babysitter_id', None)
-        if id is None:
-            raise exceptions.PermissionDenied("You must enter babysitter id")
-        return Meetings.objects.filter(babysitter__id=id)
-    
-class ShowMeetingsForParent(generics.ListAPIView):
+class ShowMeetings(generics.ListAPIView):
     """
     Show all meetings created by the logged-in parent.    
     This view is used by parents.    
     """
     queryset = Meetings.objects.all()
     serializer_class = MeetingsSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        if (hasattr(user, 'Parent')):
+            return Meetings.objects.filter(family__user=user)
+        elif (hasattr(user, 'Babysitter')):
+            return Meetings.objects.filter(babysitter__user=user)
+        return Meetings.objects.none()
+
+class MeetingActionsForBabysitter(generics.RetrieveUpdateAPIView):
+    """
+    Allows authenticated babysitters to get/edit meeting status of the meetings waits for them.
+    """
+    queryset = Requests.objects.all()
+    serializer_class = MeetingsStatusSerializer
+    permission_classes = [IsBabysitter]
+
+    def get_object(self):
+        obj = super().get_object()
+        # Ensure the logged-in babysitter is the same as the babysitter in the request
+        if obj.babysitter.user != self.request.user:
+            raise exceptions.PermissionDenied("You are not authorized to update this request.")
+        return obj
+
+class ShowBabysitterAvailabilityForMeetings(generics.ListAPIView):
+    """
+    Show all babysitter availbility time windows (both appears in AvailableTime and not busy in another meeting).    
+    - **babysitter_id** (int): The id of the babysitter.
+    This view is used by parent.
+    """
+    queryset = Meetings.objects.all()
+    serializer_class = AvailableTimeSerializer
     permission_classes = [IsParent]
 
     def get_queryset(self):
-        parents = Parents.objects.get(user=self.request.user)
-        return Meetings.objects.filter(family=parents)
+        # Check babysitter validity
+        try:
+            babysitter_id = self.request.data.get('babysitter_id', None)
+            if babysitter_id is None:
+                return Response({"detail": "babysitter_id is required."}, status=status.HTTP_404_NOT_FOUND)
+            babysitter = Babysitter.objects.get(id=babysitter_id)
+        except Babysitter.DoesNotExist:
+            return Response({"detail": "Babysitter does not exist."}, status=status.HTTP_404_NOT_FOUND)
+
+        # Check for existing meeting during the requested time period
+        existing_meetings = Meetings.objects.filter(babysitter=babysitter, status='approved')
+
+        # Get all available times for the babysitter
+        available_times = AvailableTime.objects.filter(babysitter=babysitter)
+
+        split_available_times = []
+        # Filter available times to exclude those that overlap with existing meetings
+        for available_time in available_times:
+            current_start = available_time.start_time
+            current_end = available_time.end_time
+            for meeting in existing_meetings:
+                if (
+                    current_start < meeting.end_time and
+                    current_end > meeting.start_time
+                ):
+                    # Split the available time into two parts if there's a conflict
+                    if current_start < meeting.start_time:
+                        split_available_times.append({
+                            'start_time': current_start,
+                            'end_time': meeting.start_time
+                        })
+                    if current_end > meeting.end_time:
+                        current_start = meeting.end_time  # Adjust the current_start for the next segment
+                    else:
+                        current_start = None  # No further valid segments after this meeting
+                        break
+            if current_start:
+                split_available_times.append({
+                    'start_time': current_start,
+                    'end_time': current_end
+                })
+        
+        return split_available_times
 
 ## ===== Admin =====
 
@@ -514,3 +585,10 @@ class AdminForBabysitter(viewsets.ModelViewSet):
     queryset = Babysitter.objects.all()
     serializer_class = BabysitterSerializer
     permission_classes = [permissions.IsAdminUser]  # Only admin users can access
+
+class AdminForRequests(viewsets.ModelViewSet):
+    queryset = Requests.objects.all()
+    serializer_class = RequestsSerializer
+    permission_classes = [permissions.IsAdminUser]  # Only admin users can access
+
+# ...

@@ -35,13 +35,15 @@ urlpatterns = [
     path('request-add/', views.RequestsViewSet.as_view()),
     path('requests-list/', views.ShowRequests.as_view()),
     path('request-update/<int:pk>/', views.RequestActionsForBabysitter.as_view()),
+    path('request-delete/<int:pk>/', views.RequestDeactivate.as_view()),
     # Reviews
     path('reviews-list/', views.ShowReviews.as_view()),
     # + reviews/* CRUD (in the router)
     # Meetings
     path('meetings-add/', views.CreateMeetingView.as_view()),
-    path('meetings-list/', views.ShowMeetingsPerBabysitter.as_view()),
-    path('meetings-list-parents/', views.ShowMeetingsForParent.as_view()),
+    path('meetings-list/', views.ShowMeetings.as_view()),
+    path('meeting-update/<int:pk>/', views.MeetingActionsForBabysitter.as_view()),
+    path('meeting-availablity/', views.ShowBabysitterAvailabilityForMeetings.as_view()),
     # Router
     path('', include(router.urls)),
 ]

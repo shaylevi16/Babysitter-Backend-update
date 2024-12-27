@@ -43,20 +43,26 @@ class Kids(models.Model):
 class AvailableTime(models.Model):
     id = models.AutoField(primary_key=True)
     babysitter = models.ForeignKey(Babysitter, related_name='available_times', on_delete=models.CASCADE)
-    date = models.DateField(null=True)
-    start_time = models.TimeField(null=True)
-    end_time = models.TimeField(null=True)
+    start_time = models.DateTimeField(null=False)
+    end_time = models.DateTimeField(null=False)
 
     def __str__(self):
         return f"from {self.start_time} to {self.end_time} on {self.date}"
 
 class Meetings(models.Model):
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('approved', 'Approved'),
+        ('declined', 'Declined'),
+    ]
+
     id = models.AutoField(primary_key=True)
     start_time = models.DateTimeField(null=False)  # Start time of the meeting
     end_time = models.DateTimeField(null=False)  # End time of the meeting
     family = models.ForeignKey(Parents, null=False, related_name='meetings', on_delete=models.CASCADE)
     babysitter = models.ForeignKey(Babysitter, null=False, related_name='meetings', on_delete=models.CASCADE)
     created_time = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
 
     def __str__(self):
         return f"Meeting on {self.meeting_time} between {self.family} and {self.babysitter}"
@@ -85,6 +91,7 @@ class Requests(models.Model):
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    is_active = models.BooleanField(default='True')
 
     def __str__(self):
         return f"Request from {self.family} to {self.babysitter} - {self.status}"

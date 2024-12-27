@@ -6,7 +6,8 @@ from django.contrib.auth.models import User
 
 __all__ = ["RegistrationSerializer", "BabysitterSerializer", "BabysitterSerializerForParents", "KidsSerializer",
            "ParentsSerializer", "ParentsSerializerForBabysitter", "MeetingsSerializer", "MeetingsSerializerForCreating",
-            "ReviewsSerializer", "AvailableTimeSerializer", "RequestsSerializer", "RequestsStatusSerializer"]
+            "ReviewsSerializer", "AvailableTimeSerializer", "RequestsSerializer", "RequestsIsActiveSerializer",
+            "RequestsStatusSerializer", "MeetingsStatusSerializer"]
 
 class RegistrationSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
@@ -72,6 +73,11 @@ class MeetingsSerializerForCreating(serializers.ModelSerializer):
             raise serializers.ValidationError("start_time must be before end_time.")
         return data
 
+class MeetingsStatusSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Requests
+        fields = ['id', 'status']
+
 class MeetingsSerializer(serializers.ModelSerializer):
     babysitter_id = serializers.SerializerMethodField()
 
@@ -91,8 +97,13 @@ class ReviewsSerializer(serializers.ModelSerializer):
 class AvailableTimeSerializer(serializers.ModelSerializer):
     class Meta:
         model = AvailableTime
-        fields = [ 'babysitter' ,'date', 'start_time', 'end_time']
+        fields = [ 'babysitter', 'start_time', 'end_time']
         read_only_fields = ['id', 'babysitter']
+
+    def validate(self, data):
+        if data['start_time'] >= data['end_time']:
+            raise serializers.ValidationError("start_time must be before end_time.")
+        return data
 
 class RequestsSerializer(serializers.ModelSerializer):
     class Meta:
@@ -103,3 +114,8 @@ class RequestsStatusSerializer(serializers.ModelSerializer):
     class Meta:
         model = Requests
         fields = ['id', 'status']
+
+class RequestsIsActiveSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Requests
+        fields = ['id', 'is_active']
