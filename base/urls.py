@@ -43,7 +43,7 @@ urlpatterns = [
     path('meetings-add/', views.CreateMeetingView.as_view()),
     path('meetings-list/', views.ShowMeetings.as_view()),
     path('meeting-update/<int:pk>/', views.MeetingActionsForBabysitter.as_view()),
-    path('meeting-availablity/', views.ShowBabysitterAvailabilityForMeetings.as_view()),
+    path('meeting-availablity/', views.show_babysitter_availability_for_meetings),
     # Router
     path('', include(router.urls)),
 ]

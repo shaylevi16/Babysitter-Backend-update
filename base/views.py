@@ -1,6 +1,6 @@
 from django.http import HttpResponse
 from django.contrib.auth.models import User
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework import permissions , viewsets , generics, exceptions, status
 from .serializer import *
@@ -513,7 +513,7 @@ class MeetingActionsForBabysitter(generics.RetrieveUpdateAPIView):
     """
     Allows authenticated babysitters to get/edit meeting status of the meetings waits for them.
     """
-    queryset = Requests.objects.all()
+    queryset = Meetings.objects.all()
     serializer_class = MeetingsStatusSerializer
     permission_classes = [IsBabysitter]
 
@@ -524,60 +524,59 @@ class MeetingActionsForBabysitter(generics.RetrieveUpdateAPIView):
             raise exceptions.PermissionDenied("You are not authorized to update this request.")
         return obj
 
-class ShowBabysitterAvailabilityForMeetings(generics.ListAPIView):
+@api_view(['GET'])
+@permission_classes([IsParent])
+def show_babysitter_availability_for_meetings(request):
     """
-    Show all babysitter availbility time windows (both appears in AvailableTime and not busy in another meeting).    
+    Show all babysitter availability time windows (both appear in AvailableTime and are not busy with another meeting).
     - **babysitter_id** (int): The id of the babysitter.
-    This view is used by parent.
+    This view is used by the parent.
     """
-    queryset = Meetings.objects.all()
-    serializer_class = AvailableTimeSerializer
-    permission_classes = [IsParent]
+    # Validate babysitter ID
+    babysitter_id = request.data.get('babysitter_id', None)
+    if not babysitter_id:
+        return Response({"detail": "babysitter_id is required."}, status=status.HTTP_400_BAD_REQUEST)
 
-    def get_queryset(self):
-        # Check babysitter validity
-        try:
-            babysitter_id = self.request.data.get('babysitter_id', None)
-            if babysitter_id is None:
-                return Response({"detail": "babysitter_id is required."}, status=status.HTTP_404_NOT_FOUND)
-            babysitter = Babysitter.objects.get(id=babysitter_id)
-        except Babysitter.DoesNotExist:
-            return Response({"detail": "Babysitter does not exist."}, status=status.HTTP_404_NOT_FOUND)
+    try:
+        babysitter = Babysitter.objects.get(id=babysitter_id)
+    except Babysitter.DoesNotExist:
+        return Response({"detail": "Babysitter does not exist."}, status=status.HTTP_404_NOT_FOUND)
 
-        # Check for existing meeting during the requested time period
-        existing_meetings = Meetings.objects.filter(babysitter=babysitter, status='approved')
+    # Fetch existing meetings
+    existing_meetings = Meetings.objects.filter(babysitter=babysitter, status='approved')
 
-        # Get all available times for the babysitter
-        available_times = AvailableTime.objects.filter(babysitter=babysitter)
+    # Fetch all available times for the babysitter
+    available_times = AvailableTime.objects.filter(babysitter=babysitter)
 
-        split_available_times = []
-        # Filter available times to exclude those that overlap with existing meetings
-        for available_time in available_times:
-            current_start = available_time.start_time
-            current_end = available_time.end_time
-            for meeting in existing_meetings:
-                if (
-                    current_start < meeting.end_time and
-                    current_end > meeting.start_time
-                ):
-                    # Split the available time into two parts if there's a conflict
-                    if current_start < meeting.start_time:
-                        split_available_times.append({
-                            'start_time': current_start,
-                            'end_time': meeting.start_time
-                        })
-                    if current_end > meeting.end_time:
-                        current_start = meeting.end_time  # Adjust the current_start for the next segment
-                    else:
-                        current_start = None  # No further valid segments after this meeting
-                        break
-            if current_start:
-                split_available_times.append({
-                    'start_time': current_start,
-                    'end_time': current_end
-                })
-        
-        return split_available_times
+    split_available_times = []
+    # Filter and split available times
+    for available_time in available_times:
+        current_start = available_time.start_time
+        current_end = available_time.end_time
+        for meeting in existing_meetings:
+            if current_start < meeting.end_time and current_end > meeting.start_time:
+                # Split the available time into two parts if there's a conflict
+                if current_start < meeting.start_time:
+                    split_available_times.append({
+                        'start_time': current_start,
+                        'end_time': meeting.start_time
+                    })
+                if current_end > meeting.end_time:
+                    current_start = meeting.end_time  # Adjust the current_start for the next segment
+                else:
+                    current_start = None  # No further valid segments after this meeting
+                    break
+        if current_start:
+            split_available_times.append({
+                'start_time': current_start,
+                'end_time': current_end
+            })
+
+    # Serialize the result
+    serializer = AvailableTimeSerializer(data=split_available_times, many=True)
+    serializer.is_valid(raise_exception=True)
+
+    return Response(serializer.data, status=status.HTTP_200_OK)
 
 ## ===== Admin =====
 

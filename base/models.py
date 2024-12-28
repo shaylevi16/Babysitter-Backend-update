@@ -47,7 +47,7 @@ class AvailableTime(models.Model):
     end_time = models.DateTimeField(null=False)
 
     def __str__(self):
-        return f"from {self.start_time} to {self.end_time} on {self.date}"
+        return f"from {self.start_time} to {self.end_time}"
 
 class Meetings(models.Model):
     STATUS_CHOICES = [
